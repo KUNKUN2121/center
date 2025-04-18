@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RequestShiftsController;
 use App\Http\Controllers\ShiftController;
+use App\Models\RequestShifts;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -25,7 +27,9 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     Route::get('/shift', [ShiftController::class, 'index'])->name('shift.index');
-    Route::get('/shift/create', [ShiftController::class, 'create'])->name('shift.Create');
+    Route::get('/shift/request', [RequestShiftsController::class, 'index'])->name('shift.index');
+    Route::post('/request', [RequestShiftsController::class, 'store']);
+    Route::delete('/request', [RequestShiftsController::class, 'destroy']);
 });
 
 require __DIR__.'/auth.php';
