@@ -28,7 +28,7 @@ const getDayStyle = (date: Date, currentMonth: Date, status?: Schedule["status"]
         case "tentative":
           bg = "#ffe0e0";
           break;
-        case "confirmed":
+        case "confirm":
           bg = "#d0ffd0";
           break;
       }

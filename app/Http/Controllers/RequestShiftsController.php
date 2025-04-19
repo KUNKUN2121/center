@@ -12,7 +12,7 @@ class RequestShiftsController extends Controller
     public function index()
     {
          // 募集する月を入力
-         $requestMonth = "2025/04";
+         $requestMonth = "2025/05";
 
 
 

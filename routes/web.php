@@ -1,8 +1,10 @@
 <?php
 
+use App\Http\Controllers\CreateShiftsController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RequestShiftsController;
 use App\Http\Controllers\ShiftController;
+use App\Models\CreateShifts;
 use App\Models\RequestShifts;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -30,6 +32,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/shift/request', [RequestShiftsController::class, 'index'])->name('shift.index');
     Route::post('/request', [RequestShiftsController::class, 'store']);
     Route::delete('/request', [RequestShiftsController::class, 'destroy']);
+
+
+    // シフトクリエイター
+    Route::get('/shift/create', [CreateShiftsController::class, 'index'])->name('shift.create');
+    Route::post('/create', [CreateShiftsController::class, 'create']);
 });
 
 require __DIR__.'/auth.php';
