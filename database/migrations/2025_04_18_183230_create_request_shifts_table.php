@@ -19,6 +19,8 @@ return new class extends Migration
             $table->time('end_time');
             $table->enum('status', ['draft', 'tentative'])->default('draft');
             $table->timestamps();
+
+            $table->unique(['user_id', 'work_date']);
         });
     }
 
