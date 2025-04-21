@@ -45,48 +45,6 @@ const ScheduleModal: React.FC<Props> = ({ selectedItem,handleClose,handleAddSche
 // 希望シフトのデータ
 // 確定シフトのデータ
 
-
-
-
-// 確定時間がなく、希望シフトがある場合は希望シフトの時間を収録する
-
-// 確定時間も希望シフトもない場合は、デフォルトの時間を収録する
-
-
-//     useEffect(() => {
-//         const dateString = format(selectedDate, "yyyy-MM-dd");
-//         const confirmedShift = confirmedShifts.find((schedule) => schedule.work_date === dateString);
-//         const requestSchedule = requestSchedules.find((schedule) => schedule.work_date === dateString);
-
-//         // 確定データがある場合は確定の時間を収録する
-//         if (confirmedShift) {
-//             setStartTime(formatTime(confirmedShift.start_time));
-//             setEndTime(formatTime(confirmedShift.end_time));
-//         // 確定データがない場合は希望シフトの時間を収録する
-//         } else if (requestSchedule) {
-//             setStartTime(formatTime(requestSchedule.start_time));
-//             setEndTime(formatTime(requestSchedule.end_time));
-//         } else {
-//         // 確定データも希望シフトもない場合はデフォルトの時間を収録する
-//             setStartTime("16:30");
-//             setEndTime("21:00");
-//         }
-//     }
-//     , [selectedDate, confirmedShifts, requestSchedules]);
-//   const handleSubmit = () => {
-//     onSubmit({
-//         user_id: userId,
-//         work_date: format(selectedDate, "yyyy-MM-dd"),
-//         status: "draft",
-//         start_time: startTime,
-//         end_time: endTime,
-//     });
-//     onClose();
-//   };
-//   const handleDelete = (date : Date) => {
-//     onClose();
-//   }
-
     // 確定シフト、希望シフトのデータからスタート時間とエンド時間を取得する
     useEffect(() => {
         if(selectedItem.confirmedShift) {

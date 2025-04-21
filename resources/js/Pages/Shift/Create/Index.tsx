@@ -11,7 +11,7 @@ import {
     startOfDay,
   } from "date-fns";
   import { de, ja } from "date-fns/locale";
-import { Schedule, SelectedItem } from '../types';
+import { ClosedDay, Schedule, SelectedItem } from '../types';
 import { formatTime } from '@/Feutures/format';
 import { useState } from 'react';
 import ScheduleModal from './ScheduleModal';
@@ -48,12 +48,15 @@ export default function Index() {
     // ユーザのデータを取得
     const users = props.users as User[];
 
+    // 休みの日を取得
+    const closedDays = props.closed_days as ClosedDay[];
+    console.log("closedDays", closedDays);
 
     const [selectedItem, setSelectedItem] = useState<SelectedItem | null>();
 
 
     // カレンダーの初期化処理
-    const currentDate = new Date(requestMonth.replace("/", "-") + "-01");
+    const currentDate = new Date(requestMonth.slice(0, 4) + "-" + requestMonth.slice(4, 6) + "-01");
     const start = startOfDay(startOfMonth(currentDate));
     const end = endOfMonth(endOfMonth(currentDate));
     const days : Date[] = [];
@@ -106,7 +109,7 @@ export default function Index() {
         }
         console.log("handleSubmit");
         console.log(JSON.stringify(data, null, 2));
-        router.post('/create', data, {
+        router.post('/shift/create', data, {
             onSuccess: () => {
                 // 登録後に新しいスケジュールを取得して状態を更新する
                 setConfirmedShifts((prev) => prev.map((schedule) => ({ ...schedule, id: schedule.id || Math.random() })));
@@ -135,104 +138,152 @@ export default function Index() {
         setSelectedItem(null);
     }
 
+    const handleConfirmSubmit = () => {
+        handleSubmit();
+        router.post('/shift/create/confirm', {
+            request_month: requestMonth,
+        }, {
+            onSuccess: () => {
+
+            }
+        });
+    }
+    const isClosedDay = (day: Date): boolean => {
+        const targetDate = format(day, "yyyy-MM-dd");
+        return closedDays.some((closed) => closed.date === targetDate);
+    };
+
     return (
-    <div css={testCss}>
-        <table>
-            <thead>
-                <tr>
-                    <th>名前</th>
-                    {days.map((day) => {
-                        const key = format(day, "yyyy-MM-dd");
-                        return (
-                            <th key={key}>
-                                {format(day, "d(eee)", { locale: ja })}
-                            </th>
-                        );
-                    }
-                    )}
-                </tr>
-            </thead>
-            <tbody>
-                {
-                    users.map((user) => {
-                        return (
-                            <tr key={user.id}>
-                                <td>{user.name}</td>
-                                {
-                                    days.map((day) => {
-                                        const key = format(day, "yyyy-MM-dd");
-                                        const schedule = requestSchedules.find((schedule) => schedule.user_id === user.id && schedule.work_date === key);
-                                        const confirmedShift = confirmedShifts.find((schedule) => schedule.user_id === user.id && schedule.work_date === key);
-                                        return (
-                                            <td key={key}
-                                                onClick={() => {
-                                                    handleDayClick({
-                                                        date: day,
-                                                        userId: user.id,
-                                                        schedule: schedule || null,
-                                                        confirmedShift: confirmedShift || null,});
-                                                }}
-                                            >
-                                                <div css={cellContentCss}>
-                                                        {/* 希望シフト */}
-                                                        {schedule ? (
-                                                            <div css={requestScheduleCss}>
-                                                                <p>{formatTime(schedule.start_time)} - {formatTime(schedule.end_time)}</p>
+    <div css={wapperCss}>
+        <div css={tableWapperCss}>
+            <table>
+                <thead>
+                    <tr>
+                        <th>名前</th>
+                        {days.map((day) => {
+                            const key = format(day, "yyyy-MM-dd");
+                            const closed = isClosedDay(day);
+
+                            return (
+                                <th
+                                    key={key}
+                                    css={css`
+                                        background-color: ${closed ? "#f0d3d3" : "inherit"} !important; // 定休日の場合、背景色を変更
+                                    `}
+                                >
+                                    {format(day, "d(eee)", { locale: ja })}
+                                </th>
+                            );
+                        }
+                        )}
+                    </tr>
+                </thead>
+                <tbody>
+                    {
+                        users.map((user) => {
+                            return (
+                                <tr key={user.id}>
+                                    <td>{user.name}</td>
+                                    {
+                                        days.map((day) => {
+                                            const key = format(day, "yyyy-MM-dd");
+                                            const schedule = requestSchedules.find((schedule) => schedule.user_id === user.id && schedule.work_date === key);
+                                            const confirmedShift = confirmedShifts.find((schedule) => schedule.user_id === user.id && schedule.work_date === key);
+                                            const closed = isClosedDay(day);
+                                            return (
+                                                <td key={key}
+                                                    onClick={() => {
+                                                        handleDayClick({
+                                                            date: day,
+                                                            userId: user.id,
+                                                            schedule: schedule || null,
+                                                            confirmedShift: confirmedShift || null,});
+                                                    }}
+                                                    css={css`
+                                                        background-color: ${closed ? "#f0d3d3" : "inherit"} !important; // 定休日の場合、背景色を変更
+                                                        cursor: pointer;
+                                                        &:hover {
+                                                            background-color: #e0e0e0;
+                                                        }
+                                                    `}
+                                                >
+                                                    <div css={cellContentCss}>
+                                                            {/* 希望シフト */}
+                                                            {schedule ? (
+                                                                <div css={requestScheduleCss}>
+                                                                    <p>{formatTime(schedule.start_time)} - {formatTime(schedule.end_time)}</p>
+                                                                </div>
+                                                            ) : (
+                                                                <div>-</div>
+                                                            )}
+
+                                                            {/* 確定シフト */}
+                                                            {confirmedShift && (
+                                                            <div css={confirmedCss(confirmedShift)}>
+                                                                <p>
+                                                                    {formatTime(confirmedShift.start_time)} - {formatTime(confirmedShift.end_time)}
+                                                                </p>
                                                             </div>
-                                                        ) : (
-                                                            <div>-</div>
-                                                        )}
+                                                            )}
+                                                    </div>
+                                                </td>
+                                            );
+                                        })
+                                    }
+                                </tr>
+                            )
+                        })
+                    }
 
-                                                        {/* 確定シフト */}
-                                                        {confirmedShift && (
-                                                        <div css={confirmedCss(confirmedShift)}>
-                                                            <p>
-                                                                {formatTime(confirmedShift.start_time)} - {formatTime(confirmedShift.end_time)}
-                                                            </p>
-                                                        </div>
-                                                        )}
-                                                </div>
-                                            </td>
-                                        );
-                                    })
-                                }
-                            </tr>
-                        )
-                    })
-                }
-
-            </tbody>
-        </table>
-        <button
-            onClick={() => {
-                console.log("confirmedShifts", confirmedShifts);
-            }}
-        >test</button>
-        <button
-            onClick={() => {
-                handleSubmit();
-            }}
-        >送信</button>
-        <button>
-            シフト確定
-        </button>
+                </tbody>
+            </table>
+        </div>
+        <div css={css`
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 20px;
+        `}>
+            <button
+                onClick={() => {
+                    console.log("confirmedShifts", confirmedShifts);
+                }}
+            >test</button>
+            <button
+                onClick={() => {
+                    handleSubmit();
+                }}
+            >送信</button>
+            <button
+                onClick={
+                    () => {
+                        handleConfirmSubmit();
+                    }
+                }>
+                シフト確定
+            </button>
+        </div>
         {selectedItem && (
-        <ScheduleModal
-            selectedItem={selectedItem!}
-            confirmedShifts={confirmedShifts}
-            handleClose={handleClose}
-            handleAddSchedule={handleAddSchedule}
-            handleDeleteSchedule={handleDeleteSchedule}
+            <ScheduleModal
+                selectedItem={selectedItem!}
+                confirmedShifts={confirmedShifts}
+                handleClose={handleClose}
+                handleAddSchedule={handleAddSchedule}
+                handleDeleteSchedule={handleDeleteSchedule}
 
-        />
-      )}
+                    />
+        )}
     </div>
     );
 }
 
 
-const testCss = css`
-    table {
+const wapperCss = css`
+
+`;
+
+const tableWapperCss = css`
+    overflow-x: auto;
+        table {
         border-collapse: collapse;
         width: 100%;
         margin: 20px 20px;
@@ -241,19 +292,16 @@ const testCss = css`
 
     th, td {
         border: 1px solid #ccc;
-        width: 140px;
+        width: 100px;
         text-align: center;
         height: 80px;
     }
 
-    th {
+    th, th:first-of-type{
         background-color: #f4f4f4;
     }
 
-    tr:nth-child(even) {
-        background-color: #f9f9f9;
-    }
-`;
+`
 
 const cellContentCss = css`
     height: 100%;
@@ -267,7 +315,7 @@ const cellContentCss = css`
 `;
 
 const confirmedCss = (confirmedShift : any) => css`
-    font-size: 18px;
+    font-size: 16px;
     /* background-color: #d9f2d9; */
     background-color: ${confirmedShift.status === "confirm" ? "#d9f2d9" : confirmedShift.status === "draft" ? "#fff4cc" : "#fce5cd"};
     width: 100%;
@@ -276,5 +324,7 @@ const confirmedCss = (confirmedShift : any) => css`
 
 const requestScheduleCss = css`
     width: 100%;
-    /* background-color: #d9e6f2; */
+    background-color: #d9e6f2;
+    font-size: 12px;
+    padding: 2px 0;
 `;

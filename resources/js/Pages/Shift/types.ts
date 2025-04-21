@@ -17,3 +17,8 @@ export interface SelectedItem {
     confirmedShift: Schedule | null;
 
 }
+
+export interface ClosedDay {
+    date: string; // YYYY-MM-DD
+    user_id: number;
+}

@@ -36,7 +36,8 @@ Route::middleware('auth')->group(function () {
 
     // シフトクリエイター
     Route::get('/shift/create', [CreateShiftsController::class, 'index'])->name('shift.create');
-    Route::post('/create', [CreateShiftsController::class, 'create']);
+    Route::post('/shift/create', [CreateShiftsController::class, 'create']);
+    Route::post('/shift/create/confirm', [CreateShiftsController::class, 'confirm'])->name('shift.create.confirm');
 });
 
 require __DIR__.'/auth.php';
