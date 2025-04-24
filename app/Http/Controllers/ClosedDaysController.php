@@ -11,7 +11,11 @@ class ClosedDaysController extends Controller
     //
     public function index(Request $request)
     {
-        $requestMonth = "202505";
+        // $requestMonth = "202505";
+        // getMethodからrequestMonthを取得する
+        $requestMonth = $request->input("month");
+
+
         // requestMonthの休館日を取得
 
         // 月の最初の日と最後の日を計算

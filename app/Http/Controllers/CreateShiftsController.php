@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ClosedDays;
 use App\Models\CreateShifts;
 use App\Models\RequestShifts;
+use App\Models\ShiftRequestSettings;
 use App\Models\User;
 use Carbon\Carbon;
 use GuzzleHttp\Promise\Create;
@@ -59,9 +60,59 @@ class CreateShiftsController extends Controller
     }
 
 
-    public function settings(){
+    public function settingsPage(){
         return Inertia::render('Shift/Admin/ShiftSettings');
     }
+
+
+    public function settingsPostApi(Request $request)
+    {
+        // バリデーション
+        $request->validate([
+            'year' => 'required|integer|date_format:Y',
+            'month' => 'required|date_format:m',
+            'start_date' => 'required|date_format:Y-m-d',
+            'end_date' => 'required|date_format:Y-m-d',
+            'note' => 'nullable|string|max:255',
+        ]);
+
+        ShiftRequestSettings::updateOrCreate(
+            [
+                'year' => $request->input('year'),
+                'month' => $request->input('month'),
+            ],
+            [
+                'start_date' => $request->input('start_date'),
+                'end_date' => $request->input('end_date'),
+                'note' => $request->input('note'),
+            ]
+        );
+
+        return response()->json(['message' => 'シフト設定が保存されました。']);
+
+    }
+
+    public function settingsGetApi(Request $request)
+    {
+        // バリデーション
+        $request->validate([
+            'year' => 'required|integer|date_format:Y',
+            'month' => 'required|date_format:m',
+        ]);
+
+        // シフト設定を取得
+        $shiftRequestSettings = ShiftRequestSettings::
+            where('year', $request->input('year'))
+            ->where('month', $request->input('month'))
+            ->first();
+
+        if ($shiftRequestSettings) {
+            return response()->json($shiftRequestSettings);
+        } else {
+            return response()->json(['message' => 'シフト設定が見つかりません。'], 204);
+        }
+    }
+
 
     public function createApi(Request $request)
     {

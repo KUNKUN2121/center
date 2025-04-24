@@ -42,11 +42,15 @@ Route::middleware('auth')->group(function () {
     Route::prefix('shift/admin')->as('shift.admin.')->group(function () {
         Route::get('/', [CreateShiftsController::class, 'index'])->name('index');
         Route::get('/create', [CreateShiftsController::class, 'create'])->name('create');
-        Route::get('/settings', [CreateShiftsController::class, 'settings'])->name('settings');
+        Route::get('/settings', [CreateShiftsController::class, 'settingsPage'])->name('settings');
         Route::post('/create', [CreateShiftsController::class, 'createApi']);
         Route::post('/create/confirm', [CreateShiftsController::class, 'confirmApi'])->name('create.confirm');
         // 休館日API
         Route::resource('/create/holiday', ClosedDaysController::class)->only(['index', 'store', 'destroy']);
+        // シフト設定API
+        Route::post('/api/settings', [CreateShiftsController::class, 'settingsPostApi'])->name('settingsPostApi');
+        Route::get('/api/settings', [CreateShiftsController::class, 'settingsGetApi'])->name('settingsApi');
+
     });
 
 });

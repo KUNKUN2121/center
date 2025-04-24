@@ -6,6 +6,7 @@ import {
   endOfMonth,
   endOfWeek,
   format,
+  formatDate,
   getDay,
   isSameDay,
   isSameMonth,
@@ -72,7 +73,7 @@ const dayCell = (isCurrentMonth: boolean, selected: boolean) => css`
 `;
 
 interface Props {
-  baseMonth: Date;
+    month: string;
 }
 
 interface Holiday {
@@ -80,7 +81,8 @@ interface Holiday {
     date: string;
     reason: string;
 }
-const HolidayCalendar: React.FC<Props> = ({ baseMonth }) => {
+const HolidayCalendar: React.FC<Props> = ({ month }) => {
+  const baseMonth = new Date(month)
   const [selectedDates, setSelectedDates] = useState<Holiday[]>([]);
   const [isFirstRender, setIsFirstRender] = useState(true);
 
@@ -101,7 +103,11 @@ const HolidayCalendar: React.FC<Props> = ({ baseMonth }) => {
 
     // 休館日情報を取得する
     const fetchHolidays = () => {
-        axios.get('/shift/admin/create/holiday')
+        axios.get('/shift/admin/create/holiday',{
+            params:{
+                month: format(month,"yyyyMM")
+            }
+        })
         .then(response => {
             console.log('Holidays:', response.data);
             setSelectedDates(
@@ -247,13 +253,6 @@ const HolidayCalendar: React.FC<Props> = ({ baseMonth }) => {
             </div>
             ))}
         </div>
-        <button
-            onClick={fetchHolidays}
-        >fetch</button>
-        <button
-            onClick={handleSubmit}>
-            subit
-        </button>
         </div>
     </div>
   );

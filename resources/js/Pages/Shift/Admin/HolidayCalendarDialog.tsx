@@ -6,10 +6,10 @@ import HolidayCalendar from './HolidayCalendar';
 interface Props {
   open: boolean;
   onClose: () => void;
-  baseMonth: Date;
+    month: string;
 }
 
-const HolidayCalendarDialog: React.FC<Props> = ({ open, onClose, baseMonth }) => {
+const HolidayCalendarDialog: React.FC<Props> = ({ open, onClose, month }) => {
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
       <DialogTitle>休館日設定</DialogTitle>
@@ -21,7 +21,7 @@ const HolidayCalendarDialog: React.FC<Props> = ({ open, onClose, baseMonth }) =>
         <div css={infoWapperCss}>
             <div><span css={redCss}/> : 休み</div>
         </div>
-        <HolidayCalendar baseMonth={baseMonth} />
+        <HolidayCalendar month={month} />
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>閉じる</Button>
