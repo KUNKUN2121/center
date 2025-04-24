@@ -19,6 +19,7 @@ export interface SelectedItem {
 }
 
 export interface ClosedDay {
+    id?: number;
     date: string; // YYYY-MM-DD
-    user_id: number;
+    reason?: string;
 }

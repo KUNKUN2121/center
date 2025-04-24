@@ -33,8 +33,8 @@ interface Props {
 }
 
 const ScheduleModal: React.FC<Props> = ({ date, onClose, onSubmit,schedules,deleteSchedule }) => {
-  const [startTime, setStartTime] = useState("10:00");
-  const [endTime, setEndTime] = useState("12:00");
+  const [startTime, setStartTime] = useState("16:30");
+  const [endTime, setEndTime] = useState("21:00");
 
     // 既存のスケジュールがあるかを返す関数
     const hasSchedule = (work_date: string) => {
@@ -54,11 +54,10 @@ const ScheduleModal: React.FC<Props> = ({ date, onClose, onSubmit,schedules,dele
   const handleSubmit = () => {
     onSubmit({
         work_date: format(date, "yyyy-MM-dd"),
-      status: "draft",
-      start_time: startTime,
+        status: "draft",
+        start_time: startTime,
         end_time: endTime,
     });
-    onClose();
   };
   const handleDelete = (date : Date) => {
     deleteSchedule(format(date, "yyyy-MM-dd"));

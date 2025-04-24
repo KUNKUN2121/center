@@ -13,8 +13,11 @@ use Inertia\Inertia;
 
 class CreateShiftsController extends Controller
 {
+    public function index() {
+        return Inertia::render('Shift/Admin/AdminIndex');
+    }
 
-    public function index(){
+    public function create(){
         // 募集する月を入力
         $requestMonth = "202505";
 
@@ -46,7 +49,7 @@ class CreateShiftsController extends Controller
             ->orderBy('date', 'asc')
             ->get();
 
-        return Inertia::render('Shift/Create/Index', [
+        return Inertia::render('Shift/Admin/Create/CreateIndex', [
             'request_month' => $requestMonth,
             'schedules' => $schedules,
             'confirmed_shifts' => $confirmedShifts,
@@ -55,7 +58,12 @@ class CreateShiftsController extends Controller
         ]);
     }
 
-    public function create(Request $request)
+
+    public function settings(){
+        return Inertia::render('Shift/Admin/ShiftSettings');
+    }
+
+    public function createApi(Request $request)
     {
 
         // バリデーション
@@ -100,7 +108,7 @@ class CreateShiftsController extends Controller
 
 
     // シフトを確定
-    public function confirm(Request $request)
+    public function confirmApi(Request $request)
     {
         $requestMonth = $request->input('request_month');
         $confirmedShifts = CreateShifts::
@@ -118,5 +126,7 @@ class CreateShiftsController extends Controller
         return redirect()->back()->with('message', 'シフトを確定しました');
 
     }
+
+
 }
 

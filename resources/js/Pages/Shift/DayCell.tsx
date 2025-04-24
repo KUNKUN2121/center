@@ -9,17 +9,18 @@ interface Props {
   date: Date;
   currentMonth: Date;
   schedule?: Schedule;
+  isClosed?: boolean;
   onClick: (date: Date) => void;
 }
 
 // 時間を 00:00 形式に変換する関数
 
 
-const getDayStyle = (date: Date, currentMonth: Date, status?: Schedule["status"]) => {
+const getDayStyle = (date: Date, currentMonth: Date, status?: Schedule["status"], isClosed:boolean) => {
     let bg = "#fff";
 
     if (!isSameMonth(date, currentMonth)) {
-      bg = "#f0f0f5";
+      bg = "#dbdbdf";
     } else if (status) {
       switch (status) {
         case "draft":
@@ -34,10 +35,12 @@ const getDayStyle = (date: Date, currentMonth: Date, status?: Schedule["status"]
       }
     }
 
+    bg = isClosed ? "#dbdbdf" : bg;
+
     return css`
+      height: 110px;
       border: 1px solid #ccc;
       background: ${bg};
-      min-height: 80px;
       padding: 4px;
       cursor: pointer;
       display: flex;
@@ -46,9 +49,9 @@ const getDayStyle = (date: Date, currentMonth: Date, status?: Schedule["status"]
     `;
   };
 
-const DayCell: React.FC<Props> = ({ date, currentMonth, schedule, onClick }) => {
+const DayCell: React.FC<Props> = ({ date, currentMonth, schedule, isClosed, onClick}) => {
   return (
-    <div css={getDayStyle(date, currentMonth, schedule?.status)} onClick={() => onClick(date)}>
+    <div css={getDayStyle(date, currentMonth, schedule?.status, isClosed)} onClick={() => onClick(date)}>
       <p>{format(date, "d")}</p>
       <div css={itemCss}>
         {schedule && (

@@ -4,7 +4,11 @@ import { Head, router, usePage } from '@inertiajs/react';
 import Header from '../Components/Header';
 import Calendar from './Calendar';
 import { useEffect, useState } from 'react';
-import { Schedule } from './types';
+import { ClosedDay, Schedule } from './types';
+import { Alert } from '@mui/material';
+import axios from 'axios';
+
+
 
 export default function Request() {
     // Inertia経由で渡された props を取得
@@ -13,6 +17,17 @@ export default function Request() {
     const requestMonth = props.request_month as string;
 
     const [schedules, setSchedules] = useState<Schedule[]>(initialSchedules ?? []);
+
+    const [alertMessage, setAlertMessage] = useState<{ message: string, severity: 'success' | 'info' | 'warning' | 'error' } | null>(null);
+
+    const [isFirstRender, setIsFirstRender] = useState(true);
+
+// 休みの日を　
+    const closedDays = props.closed_days as ClosedDay[];
+
+
+
+
     // postように変換する
     const convertSchedules = () => {
         return schedules.map((schedule) => ({
@@ -23,44 +38,89 @@ export default function Request() {
         }));
     };
 
-    const handleSubmit = () => {
-        router.post('/request', {
-            schedules: convertSchedules(),
-        });
-    }
+    //   alertMessageを3秒後に消す
+        useEffect(() => {
+            if (alertMessage) {
+            const timer = setTimeout(() => {
+                setAlertMessage(null);
+            }, 3000);
+            return () => clearTimeout(timer);
+            }
+        }, [alertMessage]);
 
-    const deleteSchedule = (work_date: string) => {
+    const handleSubmit = async () => {
+        try {
+            const response = await axios.post('./request', {
+                schedules: convertSchedules(),
+            });
+
+            // レスポンスの処理
+            if(response.status === 200) {
+                console.log("handleSubmit : POST success");
+            }else {
+                setAlertMessage({ message: "保存中にエラーが発生しました。", severity: "error" });
+            }
+
+        } catch (error) {
+            console.error("handleSubmit : POST error");
+            setAlertMessage({ message: "保存中にエラーが発生しました。", severity: "error" });
+            console.error(error);
+        }
+    };
+
+    const deleteSchedule = async (work_date: string) => {
         console.log("deleteSchedule", work_date);
-        router.delete('/request', {
-            data: { work_date },
-            onSuccess: () => {
+        try {
+            const response = await axios.delete('./request', {
+                data: { work_date },
+            });
+            if (response.status === 200) {
+                setAlertMessage({ message: "削除しました", severity: "success" });
+                console.log("deleteSchedule : POST success");
                 setSchedules((prev) => prev.filter(s => s.work_date !== work_date));
             }
-        });
+        } catch (error) {
+            setAlertMessage({ message: "削除中にエラーが発生しました。", severity: "error" });
+            console.error("deleteSchedule : POST error");
+            console.error(error);
+
+        }
     };
 
 
     useEffect(() => {
+        if (isFirstRender) {
+            setIsFirstRender(false);
+            return; // 初回レンダリング時はPOSTしない
+        }
+        // 内容が増えた場合のみPOSTする
+        if (schedules.length === 0) {
+            return; // スケジュールが空の場合はPOSTしない
+        }
         const data = { schedules: convertSchedules() };
-        console.log(JSON.stringify(data, null, 2));
         handleSubmit();
 
     }, [schedules]);
+
     return (
     <div css={testCss}>
         <Header />
-        <Calendar requestMonth={requestMonth} schedules={schedules} setSchedules={setSchedules} deleteSchedule={deleteSchedule}/>
-
-        <div css={submitBtnWapperCss}>
-            <button
-                onClick={() => {
-                    schedules.map((schedule) => {
-                        deleteSchedule(schedule.work_date);
-                    });
-                }
-                }
-            >クリア</button>
+        <div>
+            勤務したい日付をクリックして、勤務可能時間を入力してください。
+            締め切りは 4/19(水) までです。よろしくお願いします。
         </div>
+        <Calendar requestMonth={requestMonth} schedules={schedules} setSchedules={setSchedules} closedDays={closedDays} deleteSchedule={deleteSchedule} setAlertMessage={setAlertMessage}/>
+{alertMessage && (
+    <Alert severity={alertMessage.severity} onClose={() => setAlertMessage(null)} style={{
+        zIndex: 2000,
+        position: "fixed",
+        bottom: "10%",
+        right: "4%",
+        width: "350px",
+    }}>
+        {alertMessage.message}
+    </Alert>
+)}
     </div>
     );
 }

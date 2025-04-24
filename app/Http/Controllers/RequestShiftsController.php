@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ClosedDays;
 use App\Models\RequestShifts;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Redirect;
 
 class RequestShiftsController extends Controller
 {
@@ -24,11 +26,17 @@ class RequestShiftsController extends Controller
             ->orderBy('work_date', 'asc')
             ->get();
 
+        // ClosedDaysを取得
+        $closedDays = ClosedDays::where('date', '>=', $requestMonth . '-01')
+            ->where('date', '<=', $requestMonth . '-31')
+            ->orderBy('date', 'asc')
+            ->get();
 
 
         return Inertia::render('Shift/Request', [
             'request_month' => $requestMonth,
             'schedules' => $schedules,
+            'closed_days' => $closedDays,
         ]);
     }
 
@@ -43,30 +51,43 @@ class RequestShiftsController extends Controller
             'schedules.*.end_time' => 'required|date_format:H:i|after:schedules.*.start_time',
         ]);
 
-        // 一つ一つ保存する
-        foreach ($request->input('schedules') as $schedule) {
+        try {
 
-            // すでに同じ日付のシフトがある場合は上書きする
-            $existingShift = RequestShifts::where('user_id', $userId)
-                ->where('work_date', $schedule['work_date'])
-                ->first();
-            if ($existingShift) {
-                $existingShift->update([
+            // 一つ一つ保存する
+            foreach ($request->input('schedules') as $schedule) {
+
+                // すでに同じ日付のシフトがある場合は上書きする
+                $existingShift = RequestShifts::where('user_id', $userId)
+                    ->where('work_date', $schedule['work_date'])
+                    ->first();
+                if ($existingShift) {
+                    $existingShift->update([
+                        'start_time' => $schedule['start_time'],
+                        'end_time' => $schedule['end_time'],
+                        'status' => $schedule['status'] ?? 'draft',
+                    ]);
+                    continue;
+                }
+
+
+                // 新しいシフトを作成
+                RequestShifts::create([
+                    'user_id' => $userId,
+                    'work_date' => $schedule['work_date'],
                     'start_time' => $schedule['start_time'],
                     'end_time' => $schedule['end_time'],
-                    'status' => $schedule['status'] ?? 'draft',
                 ]);
-                continue;
+
             }
-
-
-            // 新しいシフトを作成
-            RequestShifts::create([
-                'user_id' => $userId,
-                'work_date' => $schedule['work_date'],
-                'start_time' => $schedule['start_time'],
-                'end_time' => $schedule['end_time'],
+            return response()->json([
+                'success' => true,
+                'message' => 'シフトを登録しました',
             ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'シフトの登録に失敗しました',
+            ], 500);
         }
     }
 
@@ -79,11 +100,23 @@ class RequestShiftsController extends Controller
         'work_date' => 'required|date',
     ]);
 
-    RequestShifts::where('user_id', $userId)
+    try{
+        RequestShifts::where('user_id', $userId)
         ->where('work_date', $request->work_date)
         ->delete();
 
-    return response()->json(['message' => 'Deleted']);
+        return response()->json([
+            'success' => true,
+            'message' => 'シフトを削除しました',
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'シフトの削除に失敗しました',
+        ], 500);
+    }
+
+
 }
 
     public function path(Request $request) {

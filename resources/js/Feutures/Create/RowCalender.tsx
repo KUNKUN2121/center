@@ -11,7 +11,7 @@ import {
     startOfDay,
   } from "date-fns";
   import { de, ja } from "date-fns/locale";
-import { ClosedDay, Schedule, SelectedItem } from '../types';
+import { ClosedDay, Schedule, SelectedItem } from '../../Pages/Shift/types';
 import { formatTime } from '@/Feutures/format';
 import { useState } from 'react';
 import ScheduleModal from './ScheduleModal';
@@ -28,7 +28,7 @@ import ScheduleModal from './ScheduleModal';
 
 
 
-export default function Index() {
+export default function RowCalender() {
     const { props } = usePage();
 
     // シフト募集の月を取得
@@ -155,6 +155,7 @@ export default function Index() {
 
     return (
     <div css={wapperCss}>
+        <Head title="シフト作成" />
         <div css={tableWapperCss}>
             <table>
                 <thead>

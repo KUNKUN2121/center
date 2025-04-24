@@ -21,12 +21,12 @@ export default function Index() {
             <button
                 onClick={() => handleBtnClick('#')}
                 css={shiftRequestCss}>
-                シフト管理
+                シフト確認
             </button>
             <button
-                onClick={() => handleBtnClick('create')}
+                onClick={() => handleBtnClick('admin/')}
                 css ={shiftRequestCss}>
-                シフト作成
+                管理パネル
             </button>
         </div>
 
@@ -43,7 +43,7 @@ const testCss = css`
 
 const shiftRequestWapperCss = css`
     display: flex;
-    justify-content: space-around
+    justify-content: space-around;
 
 `;
 const shiftRequestCss = css`

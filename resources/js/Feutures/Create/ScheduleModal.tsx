@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import React, { useEffect, useState } from "react";
 import { format } from "date-fns";
-import { Schedule, SelectedItem } from "../types";
+import { Schedule, SelectedItem } from "../../Pages/Shift/types";
 import { formatTime } from "@/Feutures/format";
 
 const overlay = css`

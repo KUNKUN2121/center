@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ClosedDaysController;
 use App\Http\Controllers\CreateShiftsController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RequestShiftsController;
@@ -29,15 +30,25 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     Route::get('/shift', [ShiftController::class, 'index'])->name('shift.index');
-    Route::get('/shift/request', [RequestShiftsController::class, 'index'])->name('shift.index');
-    Route::post('/request', [RequestShiftsController::class, 'store']);
-    Route::delete('/request', [RequestShiftsController::class, 'destroy']);
+    // Route::get('/shift/request', [RequestShiftsController::class, 'index'])->name('shift.index');
+    Route::resource('/shift/request', RequestShiftsController::class)->only(['index', 'store', 'destroy']);
+    Route::delete('/shift/request', [RequestShiftsController::class, 'destroy']);
+    // Route::post('/request', [RequestShiftsController::class, 'store']);
+    // Route::delete('/request', [RequestShiftsController::class, 'destroy']);
 
 
     // シフトクリエイター
-    Route::get('/shift/create', [CreateShiftsController::class, 'index'])->name('shift.create');
-    Route::post('/shift/create', [CreateShiftsController::class, 'create']);
-    Route::post('/shift/create/confirm', [CreateShiftsController::class, 'confirm'])->name('shift.create.confirm');
+
+    Route::prefix('shift/admin')->as('shift.admin.')->group(function () {
+        Route::get('/', [CreateShiftsController::class, 'index'])->name('index');
+        Route::get('/create', [CreateShiftsController::class, 'create'])->name('create');
+        Route::get('/settings', [CreateShiftsController::class, 'settings'])->name('settings');
+        Route::post('/create', [CreateShiftsController::class, 'createApi']);
+        Route::post('/create/confirm', [CreateShiftsController::class, 'confirmApi'])->name('create.confirm');
+        // 休館日API
+        Route::resource('/create/holiday', ClosedDaysController::class)->only(['index', 'store', 'destroy']);
+    });
+
 });
 
 require __DIR__.'/auth.php';
