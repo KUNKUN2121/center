@@ -14,6 +14,62 @@ use Inertia\Inertia;
 
 class CreateShiftsController extends Controller
 {
+
+    // API　
+    // 現在の状態を取得
+    public function getApi(){
+        // 募集する月を入力
+        $requestMonth = "202505";
+
+        // 月の最初の日と最後の日を計算
+        $startDate = Carbon::createFromFormat('Ym', $requestMonth)->startOfMonth();
+        $endDate = Carbon::createFromFormat('Ym', $requestMonth)->endOfMonth();
+
+        // 募集する月のシフトを取得
+        $schedules = RequestShifts::
+            where('work_date', '>=', $startDate)
+            ->where('work_date', '<=', $endDate)
+            ->orderBy('work_date', 'asc')
+            ->get();
+
+        // ユーザを取得
+        $users = User::all();
+
+        // 確定シフトを取得
+        $confirmedShifts = CreateShifts::
+            where('work_date', '>=', $startDate)
+            ->where('work_date', '<=', $endDate)
+            ->orderBy('work_date', 'asc')
+            ->get();
+
+        // 休みの日を取得
+        $closedDays = ClosedDays::
+            where('date', '>=', $startDate)
+            ->where('date', '<=', $endDate)
+            ->orderBy('date', 'asc')
+            ->get();
+        return response()->json([
+            'request_month' => $requestMonth,
+            'schedules' => $schedules,
+            'confirmed_shifts' => $confirmedShifts,
+            'users' => $users,
+            'closed_days' => $closedDays,
+        ]);
+    }
+
+
+    public function deleteApi($id){
+        $schedule = CreateShifts::find($id);
+        if (!$schedule) {
+            return response()->json(['error' => 'Schedule not found'], 404);
+        }
+        $schedule->delete();
+        return response()->json(['message' => 'Schedule deleted successfully']);
+    }
+
+
+
+
     public function index() {
         return Inertia::render('Shift/Admin/AdminIndex');
     }
@@ -116,67 +172,72 @@ class CreateShiftsController extends Controller
 
     public function createApi(Request $request)
     {
-
         // バリデーション
         $request->validate([
             'schedules' => 'nullable|array',
-            'schedules.*.user_id' => 'required|exists:users,id',
-            'schedules.*.work_date' => 'required|date',
-            'schedules.*.start_time' => 'required|date_format:H:i',
-            'schedules.*.end_time' => 'required|date_format:H:i',
+            'schedules.user_id' => 'required|exists:users,id',
+            'schedules.work_date' => 'required|date',
+            'schedules.start_time' => 'required|date_format:H:i',
+            'schedules.end_time' => 'required|date_format:H:i',
             'deleted_ids' => 'nullable|array',
-            'deleted_ids.*' => 'integer|exists:create_shifts,id',
+            'deleted_ids' => 'integer|exists:create_shifts,id',
         ]);
-        $deletedIds = $request->input('deleted_ids');
 
         // 登録処理（新しい確定シフト）
-        foreach ($request->schedules as $scheduleData) {
-            CreateShifts::updateOrCreate(
-                [
-                    'user_id' => $scheduleData['user_id'],
-                    'work_date' => $scheduleData['work_date'],
-                ],
-                [
-                    'start_time' => $scheduleData['start_time'],
-                    'end_time' => $scheduleData['end_time'],
-                    'status' => $scheduleData['status'],
-                ]
-            );
-        }
+        $scheduleData = $request->input('schedules');
 
-        // 削除処理
-        if (!empty($request->deleted_ids)) {
-            CreateShifts::whereIn('id', $request->deleted_ids)->delete();
-        }
-
-        return redirect()->back()->with('message', 'シフトを保存しました');
-
+        $result = CreateShifts::updateOrCreate(
+            [
+                'user_id' => $scheduleData['user_id'],
+                'work_date' => $scheduleData['work_date'],
+            ],
+            [
+                'start_time' => $scheduleData['start_time'],
+                'end_time' => $scheduleData['end_time'],
+                'status' => $scheduleData['status'],
+            ]
+        );
 
         $schedules = $request->input('schedules');
 
-        return redirect()->route('shift.create')->with('success', 'シフトが作成されました。');
+        return response()->json([
+            'message' => 'シフトを保存しました',
+            'schedule' => $result,
+        ]);
     }
+
+
+
 
 
     // シフトを確定
     public function confirmApi(Request $request)
     {
         $requestMonth = $request->input('request_month');
+
+        $startDate = Carbon::createFromFormat('Ym', $requestMonth)->startOfMonth();
+        $endDate = Carbon::createFromFormat('Ym', $requestMonth)->endOfMonth();
+
         $confirmedShifts = CreateShifts::
-            where('work_date', '>=', $requestMonth . '-01')
-            ->where('work_date', '<=', $requestMonth . '-31')
+            where('work_date', '>=', $startDate)
+            ->where('work_date', '<=', $endDate)
             ->orderBy('work_date', 'asc')
             ->get();
-        // すべてのstatusをdraftからconfirmに変更
-
 
         foreach ($confirmedShifts as $shift) {
             $shift->status = 'confirm';
             $shift->save();
         }
-        return redirect()->back()->with('message', 'シフトを確定しました');
+        return response()->json([
+            'message' => 'シフトを確定しました',
+            'confirmed_shifts' => $confirmedShifts,
+        ]);
 
     }
+
+
+
+
 
 
 }

@@ -23,3 +23,12 @@ export interface ClosedDay {
     date: string; // YYYY-MM-DD
     reason?: string;
 }
+
+
+export type User = {
+    id: number;
+    name: string;
+    email: string;
+  };
+
+

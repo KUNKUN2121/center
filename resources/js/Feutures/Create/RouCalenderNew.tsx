@@ -22,38 +22,45 @@ import { useRowCalendar } from '@/hook/useRowCalender';
 
 
 
+interface Data {
+    request_month: string;
+    schedules: Schedule[];
+    confirmed_shifts: Schedule[];
+    users: User[];
+    closed_days: ClosedDay[];
+}
 
+  import { useEffect } from 'react';
+import axios from 'axios';
 
+export default function RowCalenderNew() {
 
-export default function RowCalender() {
-    const { props } = usePage();
-
-    // シフト募集の月を取得
-    const requestMonth = props.request_month as string;
-
-
-    // シフト希望の管理
-    const prosRequestSchedules = props.schedules as Schedule[];
-    const [requestSchedules, setRequestSchedules] = useState<Schedule[]>(prosRequestSchedules);
-
-    // 確定シフトの状態の管理
-    const prosConfirmedShifts = props.confirmed_shifts as Schedule[];
-    const [confirmedShifts, setConfirmedShifts] = useState<Schedule[]>(prosConfirmedShifts);
-    // 削除されたスケジュールを管理
-    const [deletedIds, setDeletedIds] = useState<number[]>([]);
-
-    // ユーザのデータを取得
-    const users = props.users as User[];
-
-    // 休みの日を取得
-    const closedDays = props.closed_days as ClosedDay[];
-    console.log("closedDays", closedDays);
-
+    // const [data, setData] = useState(<Data>[]);
+    const [data, setData] = useState<Data | null>(null);
     const [selectedItem, setSelectedItem] = useState<SelectedItem | null>();
+    const [deletedIds, setDeletedIds] = useState<number[]>([]);
+    // axiosを使ってAPIからデータを取得する
+    const fetchData = () => {
+        axios.get('/api/shift/create')
+        .then(response => {
+            console.log(response.data);
+            setData(response.data);
+        }).catch(error => {
+            console.error('Error fetching holidays:', error);
+        }
+    );
+    }
 
+    useEffect(() => {
+        fetchData();
+    }, []);
 
-    // カレンダーの初期化処理
-    const currentDate = new Date(requestMonth.slice(0, 4) + "-" + requestMonth.slice(4, 6) + "-01");
+    if(!data){
+        return <div>Loading...</div>;
+    }
+
+    // カレンダー処理
+    const currentDate = new Date(data!.request_month.slice(0, 4) + "-" + data!.request_month.slice(4, 6) + "-01");
     const start = startOfDay(startOfMonth(currentDate));
     const end = endOfMonth(endOfMonth(currentDate));
     const days : Date[] = [];
@@ -65,59 +72,14 @@ export default function RowCalender() {
     }
 
 
-    // 確定シフトの追加
-    const handleAddSchedule = (newSchedule: Schedule) => {
-        console.log("handleAddSchedule");
-        // 同じものがあった場合上書きする
-        const existingScheduleIndex = confirmedShifts.findIndex((schedule) => schedule.user_id === newSchedule.user_id && schedule.work_date === newSchedule.work_date);
-        if (existingScheduleIndex !== -1) {
-            const updatedConfirmedShifts = [...confirmedShifts];
-            updatedConfirmedShifts[existingScheduleIndex] = newSchedule;
-            setConfirmedShifts(updatedConfirmedShifts);
-        } else {
-            setConfirmedShifts((prev) => [...prev, newSchedule]);
-        }
+
+    // 休み判定
+    const isClosedDay = (day: Date): boolean => {
+        const targetDate = format(day, "yyyy-MM-dd");
+        return data.closed_days.some((closed) => closed.date === targetDate);
     };
 
-    const handleDeleteSchedule = (schedule: Schedule) => {
-        console.log("handleDeleteSchedule");
-        // 確定シフトを削除する
-        setConfirmedShifts((prev) => prev.filter((s) => s.user_id !== schedule.user_id || s.work_date !== schedule.work_date));
-        // 削除されたスケジュールのIDを追加する
-        if (schedule.id) {
-            setDeletedIds((prev) => [...prev, schedule.id!]);
-        }
-    }
 
-
-    // DBに登録する
-    const handleSubmit = () => {
-        // idがnullのもののみ登録する
-        const schedulesToSubmit = confirmedShifts.filter((schedule) => !schedule.id);
-        const data = {
-            schedules: schedulesToSubmit.map((schedule) => ({
-                user_id: schedule.user_id,
-                work_date: schedule.work_date,
-                status: schedule.status,
-                start_time: schedule.start_time,
-                end_time: schedule.end_time,
-            })),
-            deleted_ids: deletedIds,
-        }
-        console.log("handleSubmit");
-        console.log(JSON.stringify(data, null, 2));
-        router.post('/shift/create', data, {
-            onSuccess: () => {
-                // 登録後に新しいスケジュールを取得して状態を更新する
-                setConfirmedShifts((prev) => prev.map((schedule) => ({ ...schedule, id: schedule.id || Math.random() })));
-                setDeletedIds([]);
-            },
-        });
-    }
-
-
-    // スケジュールの追加系
-    // 日付を選択したときに呼ばれる
     const handleDayClick = ({
         date,
         userId,
@@ -135,20 +97,89 @@ export default function RowCalender() {
         setSelectedItem(null);
     }
 
-    const handleConfirmSubmit = () => {
-        handleSubmit();
-        router.post('/shift/create/confirm', {
-            request_month: requestMonth,
-        }, {
-            onSuccess: () => {
+        const handleAddSchedule = async (newSchedule: Schedule) => {
+            const isUpdate = data!.confirmed_shifts.some(
+                shift => shift.user_id === newSchedule.user_id && shift.work_date === newSchedule.work_date
+            );
 
+            // 楽観的更新
+            const optimisticUpdate = (schedules: Schedule[]) => {
+                setData(prev => ({
+                    ...prev!,
+                    confirmed_shifts: schedules
+                }));
+            };
+
+            // 更新用の新しいシフト一覧
+            const updatedShifts = isUpdate
+                ? data!.confirmed_shifts.map(shift =>
+                      shift.user_id === newSchedule.user_id && shift.work_date === newSchedule.work_date
+                          ? { ...shift, ...newSchedule }
+                          : shift
+                  )
+                : [...data!.confirmed_shifts, newSchedule];
+
+            optimisticUpdate(updatedShifts);
+
+            try {
+                const response = await axios.post('/api/shift/create/add', { schedules: newSchedule });
+                const addedSchedule = response.data.schedule;
+
+                // 新規追加時のIDの更新
+                if (!isUpdate) {
+                    optimisticUpdate(
+                        updatedShifts.map(shift =>
+                            shift.user_id === newSchedule.user_id && shift.work_date === newSchedule.work_date
+                                ? { ...shift, id: addedSchedule.id }
+                                : shift
+                        )
+                    );
+                }
+            } catch (error) {
+                // エラー時は元に戻す
+                setData(prev => ({
+                    ...prev!,
+                    confirmed_shifts: data!.confirmed_shifts
+                }));
+                console.error('Error saving schedule:', error);
             }
-        });
-    }
-    const isClosedDay = (day: Date): boolean => {
-        const targetDate = format(day, "yyyy-MM-dd");
-        return closedDays.some((closed) => closed.date === targetDate);
-    };
+        };
+
+
+
+        const handleDeleteSchedule = async (schedule: Schedule) => {
+            try {
+                setData((prev) => ({
+                    ...prev!,
+                    confirmed_shifts: prev!.confirmed_shifts.filter(
+                        (shift) => shift.user_id !== schedule.user_id || shift.work_date !== schedule.work_date
+                    ),
+                }));
+
+                await axios.delete(`/api/shift/create/delete/${schedule.id}`);
+            } catch (error) {
+                // 元に戻す
+                setData((prev) => ({
+                    ...prev!,
+                    confirmed_shifts: [...prev!.confirmed_shifts, schedule],
+                }));
+
+                console.error('Error deleting schedule:', error);
+            }
+        };
+
+        const handleConfirmSubmit = async() => {
+            await axios.post('/api/shift/create/confirm', {
+                request_month: data!.request_month,
+            })
+            .then((response) => {
+                console.log("response", response);
+            }
+            ).catch((error) => {
+                console.error("error", error);
+            }
+            );
+        }
 
     return (
     <div css={wapperCss}>
@@ -178,15 +209,15 @@ export default function RowCalender() {
                 </thead>
                 <tbody>
                     {
-                        users.map((user) => {
+                        data!.users.map((user) => {
                             return (
                                 <tr key={user.id}>
                                     <td>{user.name}</td>
                                     {
                                         days.map((day) => {
                                             const key = format(day, "yyyy-MM-dd");
-                                            const schedule = requestSchedules.find((schedule) => schedule.user_id === user.id && schedule.work_date === key);
-                                            const confirmedShift = confirmedShifts.find((schedule) => schedule.user_id === user.id && schedule.work_date === key);
+                                            const schedule = data!.schedules.find((schedule) => schedule.user_id === user.id && schedule.work_date === key);
+                                            const confirmedShift = data!.confirmed_shifts.find((schedule) => schedule.user_id === user.id && schedule.work_date === key);
                                             const closed = isClosedDay(day);
                                             return (
                                                 <td key={key}
@@ -241,7 +272,7 @@ export default function RowCalender() {
             justify-content: space-between;
             margin: 20px 20px;
         `}>
-            <button
+             {/* <button
                 onClick={() => {
                     console.log("confirmedShifts", confirmedShifts);
                 }}
@@ -250,7 +281,7 @@ export default function RowCalender() {
                 onClick={() => {
                     handleSubmit();
                 }}
-            >送信</button>
+            >送信</button> */}
             <button
                 onClick={
                     () => {
@@ -258,12 +289,12 @@ export default function RowCalender() {
                     }
                 }>
                 シフト確定
-            </button>
+            </button> *
         </div>
         {selectedItem && (
             <ScheduleModal
                 selectedItem={selectedItem!}
-                confirmedShifts={confirmedShifts}
+                confirmedShifts={data!.confirmed_shifts}
                 handleClose={handleClose}
                 handleAddSchedule={handleAddSchedule}
                 handleDeleteSchedule={handleDeleteSchedule}

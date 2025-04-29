@@ -47,10 +47,21 @@ Route::middleware('auth')->group(function () {
         Route::post('/create/confirm', [CreateShiftsController::class, 'confirmApi'])->name('create.confirm');
         // 休館日API
         Route::resource('/create/holiday', ClosedDaysController::class)->only(['index', 'store', 'destroy']);
+
+
         // シフト設定API
         Route::post('/api/settings', [CreateShiftsController::class, 'settingsPostApi'])->name('settingsPostApi');
         Route::get('/api/settings', [CreateShiftsController::class, 'settingsGetApi'])->name('settingsApi');
 
+
+    });
+
+    // API
+    Route::prefix('api')->group(function () {
+        Route::get('/shift/create', [CreateShiftsController::class, 'getApi'])->name('shift.create');
+        Route::post('/shift/create/add', [CreateShiftsController::class, 'createApi'])->name('shift.create.add');
+        Route::delete('/shift/create/delete/{id}', [CreateShiftsController::class, 'deleteApi']);
+        Route::post('/shift/create/confirm', [CreateShiftsController::class, 'confirmApi']);
     });
 
 });

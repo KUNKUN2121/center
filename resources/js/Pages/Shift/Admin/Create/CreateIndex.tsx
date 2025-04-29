@@ -1,5 +1,6 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import RowCalender from '../../../../Feutures/Create/RowCalender';
+import RowCalenderNew from '@/Feutures/Create/RouCalenderNew';
 
 
 
@@ -17,7 +18,8 @@ export default function Index() {
                 <option value="">横表示</option>
                 <option value="">人表示</option>
             </select>
-            <RowCalender />
+            {/* <RowCalender /> */}
+            <RowCalenderNew />
         </div>
     )
 }
