@@ -5,6 +5,7 @@ use App\Http\Controllers\CreateShiftsController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RequestShiftsController;
 use App\Http\Controllers\ShiftController;
+use App\Http\Controllers\UserViewShiftController;
 use App\Models\CreateShifts;
 use App\Models\RequestShifts;
 use Illuminate\Foundation\Application;
@@ -56,8 +57,15 @@ Route::middleware('auth')->group(function () {
 
     });
 
+
+    Route::get('/shift/view', [UserViewShiftController::class, 'index'])->name('shift.request');
+
     // API
     Route::prefix('api')->group(function () {
+        // USERシフトAPI
+        Route::get('/shift/view', [UserViewShiftController::class, 'getApi'])->name('shift.request');
+
+        // シフトクリエイターAPI
         Route::get('/shift/create', [CreateShiftsController::class, 'getApi'])->name('shift.create');
         Route::post('/shift/create/add', [CreateShiftsController::class, 'createApi'])->name('shift.create.add');
         Route::delete('/shift/create/delete/{id}', [CreateShiftsController::class, 'deleteApi']);

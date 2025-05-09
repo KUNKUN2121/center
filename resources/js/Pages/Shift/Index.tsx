@@ -19,7 +19,7 @@ export default function Index() {
                 シフト提出
             </button>
             <button
-                onClick={() => handleBtnClick('#')}
+                onClick={() => handleBtnClick('view')}
                 css={shiftRequestCss}>
                 シフト確認
             </button>

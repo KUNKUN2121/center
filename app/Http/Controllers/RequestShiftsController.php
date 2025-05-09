@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ClosedDays;
 use App\Models\RequestShifts;
+use App\Models\ShiftRequestSettings;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Redirect;
@@ -13,8 +14,17 @@ class RequestShiftsController extends Controller
     //
     public function index()
     {
-         // 募集する月を入力
-         $requestMonth = "2025/05";
+        // 募集している月を取得
+        $getData = ShiftRequestSettings::where('start_date', '<=', now())
+            ->where('end_date', '>=', now())
+            ->orderBy('start_date', 'asc')
+            ->first();
+        // "2025-05"
+
+        if(!$getData) {
+            return "募集中のシフトがありません";
+        }
+        $requestMonth = $getData->year . '-' . $getData->month;
 
 
 
@@ -37,6 +47,8 @@ class RequestShiftsController extends Controller
             'request_month' => $requestMonth,
             'schedules' => $schedules,
             'closed_days' => $closedDays,
+            'note' => $getData->note,
+            'end_date' => $getData->end_date,
         ]);
     }
 

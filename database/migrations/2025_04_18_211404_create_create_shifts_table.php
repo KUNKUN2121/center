@@ -18,9 +18,10 @@ return new class extends Migration
             $table->time('start_time');
             $table->time('end_time');
             $table->enum('status', ['draft', 'confirm'])->default('draft');
+            $table->unsignedInteger('version')->default(1);
+            $table->unique(['user_id', 'work_date', 'version']);
             $table->timestamps();
 
-            $table->unique(['user_id', 'work_date']);
         });
     }
 

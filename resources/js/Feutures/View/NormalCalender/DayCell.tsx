@@ -2,13 +2,14 @@
 import { css } from "@emotion/react";
 import { format, isSameMonth } from "date-fns";
 import React from "react";
-import { Schedule } from "./types";
+import { Schedule } from "../../../Pages/Shift/types";
 import { formatTime } from "@/Feutures/format";
 
 interface Props {
   date: Date;
   currentMonth: Date;
   schedule?: Schedule;
+    userId: number;
   isClosed?: boolean;
   onClick: (date: Date) => void;
 }
@@ -16,7 +17,7 @@ interface Props {
 // 時間を 00:00 形式に変換する関数
 
 
-const getDayStyle = (date: Date, currentMonth: Date, isClosed: boolean, status?: Schedule["status"]) => {
+const getDayStyle = (date: Date, currentMonth: Date, isClosed: boolean, status?: Schedule["status"], isMe:boolean) => {
     let bg = "#fff";
 
     if (!isSameMonth(date, currentMonth)) {
@@ -30,7 +31,10 @@ const getDayStyle = (date: Date, currentMonth: Date, isClosed: boolean, status?:
           bg = "#ffe0e0";
           break;
         case "confirm":
-          bg = "#d0ffd0";
+            if(isMe){
+                bg = "#d9e6f2";
+            }
+
           break;
       }
     }
@@ -49,18 +53,24 @@ const getDayStyle = (date: Date, currentMonth: Date, isClosed: boolean, status?:
     `;
   };
 
-const DayCell: React.FC<Props> = ({ date, currentMonth, schedule, isClosed, onClick}) => {
+const DayCell: React.FC<Props> = ({ date, currentMonth, schedule, userId, isClosed, onClick}) => {
+    const isMe = schedule && schedule.user_id === userId;
   return (
-    <div css={getDayStyle(date, currentMonth, isClosed ?? false, schedule?.status)} onClick={() => onClick(date)}>
+    <div css={getDayStyle(date, currentMonth, isClosed ?? false, schedule?.status, isMe)} onClick={() => onClick(date)}>
       <p>{format(date, "d")}</p>
       <div css={itemCss}>
-        {schedule && (
+        {
+            // ユーザIDが一致するスケージュールを取得
+            isMe ? (
                 <>
-                    <p>{formatTime(schedule.start_time)}</p>
-                    <span></span>
-                    <p>{formatTime(schedule.end_time)}</p>
-                </>
-            )}
+                <p>{formatTime(schedule.start_time)}</p>
+                <span></span>
+                <p>{formatTime(schedule.end_time)}</p>
+            </>
+            ) : (
+                <></>
+            )
+        }
       </div>
 
     </div>

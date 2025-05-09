@@ -15,6 +15,19 @@ use Inertia\Inertia;
 class CreateShiftsController extends Controller
 {
 
+    public function index() {
+        return Inertia::render('Shift/Admin/AdminIndex');
+    }
+
+    public function create(){
+        return Inertia::render('Shift/Admin/Create/CreateIndex', []);
+    }
+
+    public function settingsPage(){
+        return Inertia::render('Shift/Admin/ShiftSettings');
+    }
+
+
     // API　
     // 現在の状態を取得
     public function getApi(){
@@ -40,6 +53,7 @@ class CreateShiftsController extends Controller
             where('work_date', '>=', $startDate)
             ->where('work_date', '<=', $endDate)
             ->orderBy('work_date', 'asc')
+            ->latest('version')
             ->get();
 
         // 休みの日を取得
@@ -57,7 +71,7 @@ class CreateShiftsController extends Controller
         ]);
     }
 
-
+    // 削除用API
     public function deleteApi($id){
         $schedule = CreateShifts::find($id);
         if (!$schedule) {
@@ -65,59 +79,6 @@ class CreateShiftsController extends Controller
         }
         $schedule->delete();
         return response()->json(['message' => 'Schedule deleted successfully']);
-    }
-
-
-
-
-    public function index() {
-        return Inertia::render('Shift/Admin/AdminIndex');
-    }
-
-    public function create(){
-        // 募集する月を入力
-        $requestMonth = "202505";
-
-        // 月の最初の日と最後の日を計算
-        $startDate = Carbon::createFromFormat('Ym', $requestMonth)->startOfMonth();
-        $endDate = Carbon::createFromFormat('Ym', $requestMonth)->endOfMonth();
-
-        // 募集する月のシフトを取得
-        $schedules = RequestShifts::
-            where('work_date', '>=', $startDate)
-            ->where('work_date', '<=', $endDate)
-            ->orderBy('work_date', 'asc')
-            ->get();
-
-        // ユーザを取得
-        $users = User::all();
-
-        // 確定シフトを取得
-        $confirmedShifts = CreateShifts::
-            where('work_date', '>=', $startDate)
-            ->where('work_date', '<=', $endDate)
-            ->orderBy('work_date', 'asc')
-            ->get();
-
-        // 休みの日を取得
-        $closedDays = ClosedDays::
-            where('date', '>=', $startDate)
-            ->where('date', '<=', $endDate)
-            ->orderBy('date', 'asc')
-            ->get();
-
-        return Inertia::render('Shift/Admin/Create/CreateIndex', [
-            'request_month' => $requestMonth,
-            'schedules' => $schedules,
-            'confirmed_shifts' => $confirmedShifts,
-            'users' => $users,
-            'closed_days' => $closedDays,
-        ]);
-    }
-
-
-    public function settingsPage(){
-        return Inertia::render('Shift/Admin/ShiftSettings');
     }
 
 
@@ -186,19 +147,35 @@ class CreateShiftsController extends Controller
         // 登録処理（新しい確定シフト）
         $scheduleData = $request->input('schedules');
 
-        $result = CreateShifts::updateOrCreate(
-            [
+            // ユーザーが過去に同じ日付にシフトを作成しているかを確認
+        $existingShift = CreateShifts::where('user_id', $scheduleData['user_id'])
+            ->where('work_date', $scheduleData['work_date'])
+            ->where('status', 'confirm') // 確定しているシフト
+            ->first();
+
+        if ($existingShift) {
+            // 確定済みのシフトがある場合、versionをインクリメントして新しいシフトを作成
+            $newVersion = $existingShift->version + 1;
+
+            $result = CreateShifts::create([
                 'user_id' => $scheduleData['user_id'],
                 'work_date' => $scheduleData['work_date'],
-            ],
-            [
                 'start_time' => $scheduleData['start_time'],
                 'end_time' => $scheduleData['end_time'],
-                'status' => $scheduleData['status'],
-            ]
-        );
-
-        $schedules = $request->input('schedules');
+                'status' => 'draft', // 新しいシフトは下書き
+                'version' => $newVersion, // バージョンをインクリメント
+            ]);
+        } else{
+            // 新しいシフトを作成
+            $result = CreateShifts::create([
+                'user_id' => $scheduleData['user_id'],
+                'work_date' => $scheduleData['work_date'],
+                'start_time' => $scheduleData['start_time'],
+                'end_time' => $scheduleData['end_time'],
+                'status' => 'draft', // 新しいシフトは下書き
+                'version' => 1, // 新しいシフトのバージョンは1
+            ]);
+        }
 
         return response()->json([
             'message' => 'シフトを保存しました',
@@ -218,11 +195,10 @@ class CreateShiftsController extends Controller
         $startDate = Carbon::createFromFormat('Ym', $requestMonth)->startOfMonth();
         $endDate = Carbon::createFromFormat('Ym', $requestMonth)->endOfMonth();
 
-        $confirmedShifts = CreateShifts::
-            where('work_date', '>=', $startDate)
-            ->where('work_date', '<=', $endDate)
-            ->orderBy('work_date', 'asc')
-            ->get();
+    $confirmedShifts = CreateShifts::where('work_date', '>=', $startDate)
+                                    ->where('work_date', '<=', $endDate)
+                                    ->where('status', 'draft') // 下書き状態のシフトを対象
+                                    ->get();
 
         foreach ($confirmedShifts as $shift) {
             $shift->status = 'confirm';

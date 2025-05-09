@@ -5,7 +5,7 @@ import { Head } from '@inertiajs/react';
 export default function Header() {
     return (
     <div css={wapper}>
-        thisis header
+        
     </div>
     );
 }

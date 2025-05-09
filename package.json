@@ -29,7 +29,8 @@
         "@emotion/react": "^11.14.0",
         "@emotion/styled": "^11.14.0",
         "@inertiajs/inertia-react": "^0.8.1",
-        "@mui/material": "^7.0.2",
+        "@mui/icons-material": "^7.1.0",
+        "@mui/material": "^7.1.0",
         "date-fns": "^4.1.0",
         "react-day-picker": "^9.6.7"
     }

@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { ClosedDay, Schedule } from './types';
 import { Alert } from '@mui/material';
 import axios from 'axios';
+import { format, parse } from 'date-fns';
 
 
 
@@ -15,6 +16,8 @@ export default function Request() {
     const { props } = usePage();
     const initialSchedules = props.schedules as Schedule[];
     const requestMonth = props.request_month as string;
+    const note = props.note as string;
+    const endDate = props.end_date as string;
 
     const [schedules, setSchedules] = useState<Schedule[]>(initialSchedules ?? []);
 
@@ -22,7 +25,7 @@ export default function Request() {
 
     const [isFirstRender, setIsFirstRender] = useState(true);
 
-// 休みの日を　
+// 休みの日を
     const closedDays = props.closed_days as ClosedDay[];
 
 
@@ -102,25 +105,29 @@ export default function Request() {
 
     }, [schedules]);
 
+    console.log("schedules", requestMonth);
+    const date = parse(requestMonth, 'yyyy-MM', new Date())
+
     return (
     <div css={testCss}>
         <Header />
-        <div>
-            勤務したい日付をクリックして、勤務可能時間を入力してください。
-            締め切りは 4/19(水) までです。よろしくお願いします。
+        <h1 css={monthCss}>{format(date,"yyyy年MM月")}</h1>
+        <div css={messageBoxCss}>
+            <p>{note}</p>
+            <p>締め切り : {format(endDate,"M月dd日")}</p>
         </div>
         <Calendar requestMonth={requestMonth} schedules={schedules} setSchedules={setSchedules} closedDays={closedDays} deleteSchedule={deleteSchedule} setAlertMessage={setAlertMessage}/>
-{alertMessage && (
-    <Alert severity={alertMessage.severity} onClose={() => setAlertMessage(null)} style={{
-        zIndex: 2000,
-        position: "fixed",
-        bottom: "10%",
-        right: "4%",
-        width: "350px",
-    }}>
-        {alertMessage.message}
-    </Alert>
-)}
+        {alertMessage && (
+            <Alert severity={alertMessage.severity} onClose={() => setAlertMessage(null)} style={{
+                zIndex: 2000,
+                position: "fixed",
+                bottom: "10%",
+                right: "4%",
+                width: "350px",
+            }}>
+                {alertMessage.message}
+            </Alert>
+        )}
     </div>
     );
 }
@@ -128,6 +135,12 @@ export default function Request() {
 
 const testCss = css`
 
+`;
+
+const monthCss = css`
+  text-align: center;
+  font-size: 24px;
+  margin-top: 40px;
 `;
 
 const submitBtnWapperCss = css`
@@ -146,4 +159,15 @@ const submitBtnWapperCss = css`
             background-color: #0056b3;
         }
     }
+`;
+
+const messageBoxCss = css`
+    background-color: #f8f9fa;
+    border: 1px solid #ced4da;
+    border-radius: 5px;
+    padding: 10px;
+    font-size: 16px;
+    color: #212529;
+    max-width: 800px;
+    margin: 0 auto 24px;
 `;
